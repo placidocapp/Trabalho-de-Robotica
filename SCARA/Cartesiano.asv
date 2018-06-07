@@ -6,19 +6,13 @@ format short;
 %% Inicilização  
 
 %Variáveis das juntas
-syms theta1 theta2 d3 theta4
-
-%Parâmetros do robô
-a1 = 0;
-a2 = 1.2;
-d1 = 1.5;
-d4 = 0;
+syms d1 d2 d3
 
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
 %Posição desejada
-pfinal = [1;1;1;1];
+pfinal = [2;2;2;1];
 
 %Pàsso
 ds = 0.01;
@@ -26,29 +20,43 @@ ds = 0.01;
 %% SCARA
 
 % Calcula a matriz de rotação
-A1 = A(a1, 0, d1, theta1, 1);
-A2 = A(a2, pi, 0, theta2, 1);
-A3 = A(0, 0, d3, 0, 1);
-A4 = A(0, 0, d4, theta4, 1);
+A0 = A(0, pi/2, 0, pi, 1);
+A1 = A(0, 0, d1, 0, 1);
+A2 = A(0, -pi/2, d2, 0, 1);
+A3 = A(0, -pi/2, d3, -pi/2, 1);
 
 %Posição de cada junta
-T1 = A1*p0;
-T2 = A1*A2*p0;
-T3 = A1*A2*A3*p0;
-T4 = A1*A2*A3*A4*p0;
-
+T1_s = A0*A1*p0;
+T2_s = A0*A1*A2*p0;
+T3_s = A0*A1*A2*A3*p0;
+%%TESTE
+        d1 = 1;
+        d2 = 1;
+        d3 = 1;
+        T1 = eval(T1_s);
+        T2 = eval(T2_s);
+        T3 = eval(T3_s);
+plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
+hold on;
+    axis([-1 3 -1 3 -1 3])
+    plot3(T1(1),T1(2), T1(3), 'b*')
+    plot3(T2(1),T2(2), T2(3), 'g*')
+    plot3(T3(1),T3(2), T3(3), 'c*')
+    plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
+    plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+    return
+%%TESTE
 %Tira o jacobiano
-Jacobiano = jacobian(T4, [theta1 theta2 d3 theta4]);
+Jacobiano = jacobian(T3_s, [d1 d2 d3]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
-theta1 = deg2rad(45);
-theta2 = deg2rad(20);
-d3 = 0.1;
-theta4 = deg2rad(0);
+d1 = 1;
+d2 = 1;
+d3 = 1;
 
 %Trajetória
-pini = eval(A1*A2*A3*A4*p0);      %Posição inicial da ponta do robo
+pini = eval(T3_s);      %Posição inicial da ponta do robo
 trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
                linspace(pini(2,1),pfinal(2,1),inv(ds));
                linspace(pini(3,1),pfinal(3,1),inv(ds));
@@ -56,12 +64,11 @@ trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
 
 %Parâmetros
 maxIter = 100;
-theta = zeros(4, maxIter);
-theta(:,1) = [theta1; theta2; d3; theta4];
-eps = 10^-3;
+d(:,1) = [d1; d2; d3];
+eps = 10^-4;
 
 %Posição inicial
-pos_inicial = eval(A1*A2*A3*A4*p0);
+pos_inicial = eval(A1*A2*A3*p0);
 
 for i = 2:inv(ds)
     pf = trajetoria(:,i);
@@ -69,33 +76,26 @@ for i = 2:inv(ds)
     %Loop para cinemática reversa
     while (1)
         %Descobre as posições das juntas
-        T1 = eval(A1*p0);
-        T2 = eval(A1*A2*p0);
-        T3 = eval(A1*A2*A3*p0);
-        T4 = eval(A1*A2*A3*A4*p0);
+        T1 = eval(T1_s);
+        T2 = eval(T2_s);
+        T3 = eval(T3_s);
         J = eval(Jacobiano);
 
         %Faz a iteração do algoritmo
-        DTheta = J*(pf - T4);
-        if DTheta < 10^-3 && erro_de_posicao > 10^-4
-            DTheta = 
-        theta(:,k+1) = theta(:,k) + DTheta;
-        erro_de_posicao = pf - T4;
-        theta1 = theta(1,k+1);
-        theta2 = theta(2,k+1);
-        d3 = theta(3,k+1);
-        theta4 = theta(4,k+1);
-%         if d3 < 0.1
-%             d3 = 0.1;
-%         end
+        dx = pinv(J)*(pf - T3);
+        d(:,k+1) = d(:,k) + dx;
+        erro_de_posicao = pf - T3;
+        d1 = d(1,k+1);
+        d2 = d(2,k+1);
+        d3 = d(3,k+1);
 
         k = k+1;
-        if (k > maxIter)||(sum(erro_de_posicao < eps) == 4)||(DTheta < 10^-5)
+        if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(dx < 10^-10) == 4)||(k > maxIter)
             erro_de_posicao
             k
             %atualiza novo theta
-            theta(:,1) = theta(:,k-1);
-            theta(:,1);
+            d(:,1) = d(:,k-1);
+            d(:,1);
             break;
         end 
         
@@ -112,15 +112,12 @@ for i = 2:inv(ds)
     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
     plot3(T1(1),T1(2), T1(3), '*')
     plot3(T2(1),T2(2), T2(3), '*')
-    plot3(T3(1),T3(2), T3(3), '*')
     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
-    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
     pause(0.05);
     
     %Atualiza a posição incial como a posição atual do robo
-    pos_inicial = T4;
-    T4 = eval(A1*A2*A3*A4*p0);
+    pos_inicial = T3;
     
 %end for
 end

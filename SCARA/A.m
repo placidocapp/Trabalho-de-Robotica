@@ -9,9 +9,9 @@ if ~exist('rad','var')
 end
 
 R = hom(theta, zeros(3,1), 3, rad)*...  %Rotação de theta em z
-    hom(0, [0; 0; d], 3, rad)*...                           
-    hom(0, [a; 0; 0], 1, rad)*...
-    hom(alpha, zeros(3,1), 1, rad);
+    hom(0, [0; 0; d], 3, rad)*...       %Translação de d em z                         
+    hom(0, [a; 0; 0], 1, rad)*...       %Translação de a em x
+    hom(alpha, zeros(3,1), 1, rad);     %Rotação de alpha em x
 
 
 end

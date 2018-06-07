@@ -12,13 +12,13 @@ syms theta1 theta2 d3 theta4
 a1 = 1;
 a2 = 1.2;
 d1 = 1.5;
-d4 = 1;
+d4 = 0;
 
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
 %Posição desejada
-pfinal = [2;2;2;1];
+pfinal = [-1;1.9;0.2;1];
 
 %Pàsso
 ds = 0.01;
@@ -32,13 +32,13 @@ A3 = A(0, 0, d3, 0, 1);
 A4 = A(0, 0, d4, theta4, 1);
 
 %Posição de cada junta
-T1 = A1*p0;
-T2 = A1*A2*p0;
-T3 = A1*A2*A3*p0;
-T4 = A1*A2*A3*A4*p0;
+T1_s = A1*p0;
+T2_s = A1*A2*p0;
+T3_s = A1*A2*A3*p0;
+T4_s = A1*A2*A3*A4*p0;
 
 %Tira o jacobiano
-Jacobiano = jacobian(T4, [theta1 theta2 d3 theta4]);
+Jacobiano = jacobian(T4_s, [theta1 theta2 d3 theta4]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
@@ -48,11 +48,11 @@ d3 = 0.1;
 theta4 = deg2rad(0);
 
 %Trajetória
-pi = eval(A1*A2*A3*A4*p0);      %Posição inicial da ponta do robo
-trajetoria = [ linspace(pi(1,1),pfinal(1,1),inv(ds));
-               linspace(pi(2,1),pfinal(2,1),inv(ds));
-               linspace(pi(3,1),pfinal(3,1),inv(ds));
-               linspace(pi(4,1),pfinal(4,1),inv(ds))];
+pini = eval(A1*A2*A3*A4*p0);      %Posição inicial da ponta do robo
+trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
+               linspace(pini(2,1),pfinal(2,1),inv(ds));
+               linspace(pini(3,1),pfinal(3,1),inv(ds));
+               linspace(pini(4,1),pfinal(4,1),inv(ds))];
 
 %Parâmetros
 maxIter = 100;
@@ -64,43 +64,45 @@ eps = 10^-4;
 pos_inicial = eval(A1*A2*A3*A4*p0);
 
 for i = 2:inv(ds)
-    pf = trajetoria(:,i)
+    pf = trajetoria(:,i);
     k = 1;
     %Loop para cinemática reversa
     while (1)
         %Descobre as posições das juntas
-        T1 = eval(A1*p0);
-        T2 = eval(A1*A2*p0);
-        T3 = eval(A1*A2*A3*p0);
-        T4 = eval(A1*A2*A3*A4*p0);
+        T1 = eval(T1_s);
+        T2 = eval(T2_s);
+        T3 = eval(T3_s);
+        T4 = eval(T4_s);
         J = eval(Jacobiano);
 
         %Faz a iteração do algoritmo
-        theta(:,k+1) = theta(:,k) + J*(pf - T4);
+        Dtheta = pinv(J)*(pf - T4);
+        theta(:,k+1) = theta(:,k) + Dtheta;
         erro_de_posicao = pf - T4;
         theta1 = theta(1,k+1);
         theta2 = theta(2,k+1);
         d3 = theta(3,k+1);
         theta4 = theta(4,k+1);
 
+
         k = k+1;
-        if (k > maxIter)||( sum(erro_de_posicao < eps) == 4 )
+        if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(Dtheta < 10^-10) == 4)||(k > maxIter)
             erro_de_posicao
             k
             %atualiza novo theta
             theta(:,1) = theta(:,k-1);
             theta(:,1);
             break;
-        end
+        end 
         
     %end while
     end
     
     %Plota
     clf
-    plot3(pi(1,1),pi(2,1),pi(3,1),'.b');
+    plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
     hold on;
-    axis([0 3 0 3 0 3])
+    axis([-1 3 -1 3 -1 3])
     plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.r');
     plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
@@ -113,8 +115,8 @@ for i = 2:inv(ds)
     pause(0.05);
     
     %Atualiza a posição incial como a posição atual do robo
-    pos_inicial = T4
-    T4 = eval(A1*A2*A3*A4*p0)
+    pos_inicial = T4;
+    T4 = eval(A1*A2*A3*A4*p0);
     
 %end for
 end
