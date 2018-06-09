@@ -6,7 +6,7 @@ format short;
 %% Inicilização  
 
 %Variáveis das juntas
-syms d1 d2 d3
+syms d1 d2 d3 d4
 
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
@@ -20,43 +20,29 @@ ds = 0.01;
 %% SCARA
 
 % Calcula a matriz de rotação
-A0 = A(0, pi/2, 0, pi, 1);
-A1 = A(0, 0, d1, 0, 1);
-A2 = A(0, -pi/2, d2, 0, 1);
-A3 = A(0, -pi/2, d3, -pi/2, 1);
+A1 = A(0,-90,d1,0)
+A2 = A(0,-90,d2,-90)
+A3 = A(0,-90,d3,90)
+A4 = A(0,0,d4,0)
 
 %Posição de cada junta
-T1_s = A0*A1*p0;
-T2_s = A0*A1*A2*p0;
-T3_s = A0*A1*A2*A3*p0;
-%%TESTE
-        d1 = 1;
-        d2 = 1;
-        d3 = 1;
-        T1 = eval(T1_s);
-        T2 = eval(T2_s);
-        T3 = eval(T3_s);
-plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
-hold on;
-    axis([-1 3 -1 3 -1 3])
-    plot3(T1(1),T1(2), T1(3), 'b*')
-    plot3(T2(1),T2(2), T2(3), 'g*')
-    plot3(T3(1),T3(2), T3(3), 'c*')
-    plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
-    plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
-    return
-%%TESTE
+T1_s = A1*p0;
+T2_s = A1*A2*p0;
+T3_s = A1*A2*A3*p0;
+T4_s = A1*A2*A3*A4*p0;
+
 %Tira o jacobiano
-Jacobiano = jacobian(T3_s, [d1 d2 d3]);
+Jacobiano = jacobian(T4_s, [d1 d2 d3]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
 d1 = 1;
 d2 = 1;
 d3 = 1;
+d4 = 1;
 
 %Trajetória
-pini = eval(T3_s);      %Posição inicial da ponta do robo
+pini = eval(T4_s);      %Posição inicial da ponta do robo
 trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
                linspace(pini(2,1),pfinal(2,1),inv(ds));
                linspace(pini(3,1),pfinal(3,1),inv(ds));
@@ -79,6 +65,7 @@ for i = 2:inv(ds)
         T1 = eval(T1_s);
         T2 = eval(T2_s);
         T3 = eval(T3_s);
+        T4 = eval(T4_s);
         J = eval(Jacobiano);
 
         %Faz a iteração do algoritmo
@@ -110,10 +97,12 @@ for i = 2:inv(ds)
     plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.r');
     plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
-    plot3(T1(1),T1(2), T1(3), '*')
-    plot3(T2(1),T2(2), T2(3), '*')
+    plot3(T1(1),T1(2), T1(3), 'b*')
+    plot3(T2(1),T2(2), T2(3), 'g*')
+    plot3(T3(1),T3(2), T3(3), 'r*')
     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
     pause(0.05);
     
     %Atualiza a posição incial como a posição atual do robo
