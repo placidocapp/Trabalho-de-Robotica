@@ -1,4 +1,4 @@
-function [ x ] = trajetoria( ti, pi, tf, pf, vi, vf )
+function [ x ] = poli( ti, pi, tf, pf, vi, vf )
 %Gera uma trajetoria cúbica a partir do ponto inicial e final
 
 %% Calcula coeficientes

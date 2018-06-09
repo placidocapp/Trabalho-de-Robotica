@@ -14,7 +14,7 @@ p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 %Posição desejada
 pfinal = [2;2;2;1];
 
-%Pàsso
+%Passo
 ds = 0.01;
 
 %% SCARA

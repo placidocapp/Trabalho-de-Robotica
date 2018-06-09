@@ -28,7 +28,7 @@ dss = 0.01;
 
 %Tempo inicial e final
 ti = 0;
-tf = 1;
+tf = 2;
 
 %Velocidades iniciais e finais
 vi = 0;
@@ -70,8 +70,6 @@ maxIter = 100;
 theta = zeros(4,1);
 theta(:,1) = [theta1; theta2; d3; theta4];
 eps = 10^-4;
-thetaFinal = zeros(4,inv(ds));
-thetaFinal(:,1) = theta(:,1);
 
 %Posição inicial
 pos_inicial = eval(A1*A2*A3*A4*p0);
@@ -126,7 +124,7 @@ for i = 2:inv(ds)
     
     %Atualiza a posição incial como a posição atual do robo
     pos_inicial = T4;
-    thetaFinal(:,i) = theta(:,k-1);
+    thetaFinal = [];
     
 %end for
 end
@@ -140,16 +138,13 @@ div = floor(1/dss);
 trajetoria = zeros(div,size(theta,1));
 t = linspace(ti,tf,div);
 for i = 1:size(theta,1)
-    aux = poli(ti, thetaFinal(i,1), tf, thetaFinal(i,end), vi, vf);
+    aux = poli(ti, theta(i,1), tf, theta(i,end), vi, vf);
     for k = 1:size(t,2)
         trajetoria(k,i) = aux'*[1; t(k); t(k)^2; t(k)^3];
     end
-    subplot(2,2,i)
-    plot(t,trajetoria(:,i))
 end
-
+return
 %Plota o resultado
-figure();
 for i = 1:size(trajetoria,1)
     
     %Novas posições de cada junta
