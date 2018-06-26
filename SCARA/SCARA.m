@@ -18,7 +18,7 @@ d4 = 0;
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
 %Posição desejada
-pfinal = [-1;1.9;0.2;1];
+pfinal = [0.5;2;0.2;1];
 
 %Passo para cinemática inversa
 ds = 0.1;
@@ -33,6 +33,10 @@ tf = 1;
 %Velocidades iniciais e finais
 vi = 0;
 vf = 0;
+
+%Acelerações iniciais e finais
+ai = 0;
+af = 0;
 
 %% SCARA
 
@@ -53,9 +57,9 @@ Jacobiano = jacobian(T4_s, [theta1 theta2 d3 theta4]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
-theta1 = deg2rad(45);
-theta2 = deg2rad(20);
-d3 = 0.1;
+theta1 = -0.177613415641065;
+theta2 = 1.947575427099808;
+d3 = 1.300000000000000;
 theta4 = deg2rad(0);
 
 %Trajetória
@@ -138,18 +142,71 @@ div = floor(1/dss);
 
 %Gera as trajetórias
 trajetoria = zeros(div,size(theta,1));
+vel = zeros(div,size(theta,1));
+acel = zeros(div,size(theta,1));
 t = linspace(ti,tf,div);
+figure(1);
+figure(2);
+figure(3);
 for i = 1:size(theta,1)
-    aux = poli(ti, thetaFinal(i,1), tf, thetaFinal(i,end), vi, vf);
+    aux = poli2(ti, thetaFinal(i,1), tf, thetaFinal(i,end), vi, vf, ai, af);
     for k = 1:size(t,2)
-        trajetoria(k,i) = aux'*[1; t(k); t(k)^2; t(k)^3];
+        trajetoria(k,i) = aux'*[1; t(k); t(k)^2; t(k)^3; t(k)^4; t(k)^5];
+        vel(k,i) = aux'*[0; 1; 2*t(k); 3*t(k)^2; 4*t(k)^3; 5*t(k)^4];
+        acel(k,i) = aux'*[0; 0; 2; t(k)^3; t(k)^4; t(k)^5];
     end
-    subplot(2,2,i)
-    plot(t,trajetoria(:,i))
+    figure(1),subplot(2,2,i), plot(t,trajetoria(:,i));
+    %Escolhe o print
+    if i == 1
+        title('Trajetória de \theta_1')
+        ylabel('\theta_1 [rad]')
+    elseif i == 2
+        title('Trajetória de \theta_2')
+        ylabel('\theta_2 [rad]')
+    elseif i == 3
+        title('Trajetória de d_3')
+        ylabel('d_3 [m]')
+    elseif i == 4
+        title('Trajetória de \theta_4')
+        ylabel('\theta_4 [rad]')
+    end
+    xlabel('t [s]')
+    figure(2),subplot(2,2,i), plot(t,vel(:,i));
+    %Escolhe o print
+    if i == 1
+        title('Velocidade de \theta_1')
+        ylabel('\theta_1 [rad/s]')
+    elseif i == 2
+        title('Velocidade de \theta_2')
+        ylabel('\theta_2 [rad/s]')
+    elseif i == 3
+        title('Velocidade de d_3')
+        ylabel('d_3 [m/s]')
+    elseif i == 4
+        title('Velocidade de \theta_4')
+        ylabel('\theta_4 [rad/s]')
+    end
+    xlabel('t [s]')
+    figure(3),subplot(2,2,i), plot(t,acel(:,i));
+    %Escolhe o print
+    if i == 1
+        title('Aceleração de \theta_1')
+        ylabel('\theta_1 [rad/s^2]')
+    elseif i == 2
+        title('Aceleração de \theta_2')
+        ylabel('\theta_2 [rad/s^2]')
+    elseif i == 3
+        title('Aceleração de d_3')
+        ylabel('d_3 [m/s^2]')
+    elseif i == 4
+        title('Aceleração de \theta_4')
+        ylabel('\theta_4 [rad/s^2]')
+    end
+    xlabel('t [s]')
 end
 
 %Plota o resultado
-figure();
+figure(4);
 for i = 1:size(trajetoria,1)
     
     %Novas posições de cada junta
@@ -164,7 +221,7 @@ for i = 1:size(trajetoria,1)
     T3 = eval(T3_s);
     T4 = eval(T4_s);
     
-    %Plota
+%     %Plota
     clf
     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
     hold on;
@@ -180,11 +237,96 @@ for i = 1:size(trajetoria,1)
     plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
     pause(0.05);
 end
+return
+%% Modelo dinâmico do sistema
 
+%Parâmetros do sistema
+m = 15;     % [kg] para cada junta
+g = 9.81;   % [m/s^2]
+Iz1 = 10; Iz2 = 10; Iz3 = 10; Iz4 = 10;
+m1 = 10; m2 = 10; m3 = 10; m4 = 10;
 
+syms theta1 theta2 d3 theta4 theta1_dot theta2_dot
 
+%Valor de D 
+d11 = Iz1 + Iz2 + Iz3 + Iz4 + a1^2*(m1+m2+m3+m4) + a2^2*(m2+m3+m4)+...
+    2*a1*a2*cos(theta2)*(m2+m3+m4);
+d12 = Iz2 + Iz3 + Iz4 + a2^2*(m2+m3+m4)+a1*a2*cos(theta2)*(m2+m3+m4);
+d13 = 0;
+d14 = -Iz4;
+d21 = Iz2 + Iz3 + Iz4 + a2^2*(m2+m3+m4)+2*a1*a2*cos(theta2)*(m2+m3+m4);
+d22 = Iz2 + Iz3 + Iz4 + a2^2*(m2+m3+m4);
+d23 = 0;
+d24 = -Iz2;
+d31 = 0;
+d32 = 0;
+d33 = m3+m4;
+d34 = 0;
+d41 = -Iz4;
+d42 = -Iz4;
+d43 = 0;
+d44 = Iz4;
 
+D = [d11 d12 d13 d14; d21 d22 d23 d24; d31 d32 d33 d34; d41 d42 d43 d44;];
 
+%Matriz C
+c112 = a1*a2*sin(theta2)*(m2+m3+m4);
+C1 = [       0     -c112     0     0    
+             c112  0         0     0 
+             0     0         0     0
+             0     0         0     0 
+             ];
+C2 = [       -c112 0         0     0    
+             0     0         0     0 
+             0     0         0     0
+             0     0         0     0 
+             ];
+C3 = [       0     0         0     0    
+             0     0         0     0 
+             0     0         0     0
+             0     0         0     0 
+             ];
+C4 = [       0     0         0     0    
+             0     0         0     0 
+             0     0         0     0
+             0     0         0     0 
+             ];
+C = C1*theta1_dot + C2*theta2_dot;
+%Cálculo da matriz G
+G = [0; 0; -g*(m3+m4); 0];   
+
+%%  Esforços nas juntas da trajetória desejada
+
+%Vetor de Esforços
+F = zeros(4,div);
+for k = 1:div
+    theta1 = trajetoria(k,1);
+    theta2 = trajetoria(k,2);
+    theta1_dot = vel(k,1);
+    theta2_dot = vel(k,2);
+    F(:,k) = eval(D)*acel(k,:)' + eval(C)*vel(k,:)'...
+        + G;
+end
+
+figure(5);
+for i = 1:4
+     figure(5),subplot(2,2,i), plot(t,F(i,:));
+    %Escolhe o print
+    if i == 1
+        title('Esforço de \theta_1')
+        ylabel('\theta_1 [N.m]')
+    elseif i == 2
+        title('Esforço de \theta_2')
+        ylabel('\theta_2 [N.m]')
+    elseif i == 3
+        title('Esforço de d_3')
+        ylabel('d_3 [N]')
+    elseif i == 4
+        title('Esforço de \theta_4')
+        ylabel('\theta_4 [N.m]')
+    end
+    xlabel('t [s]')
+end
 
 
 

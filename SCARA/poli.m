@@ -3,9 +3,9 @@ function [ x ] = poli( ti, pi, tf, pf, vi, vf )
 
 %% Calcula coeficientes
 A = [1 ti ti^2 ti^3
-     0 1  2*ti 3*ti
+     0 1  2*ti 3*ti^2
      1 tf tf^2 tf^3
-     0 1  2*tf 3*tf];
+     0 1  2*tf 3*tf^2];
 b = [pi; vi; pf; vf];
 x = A\b;
 
