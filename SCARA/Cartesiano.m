@@ -36,25 +36,28 @@ af = 0;
 
 % Calcula a matriz de rotação
 A1 = A(0,-90,d1,0);
-A2 = A(0,90,d2,90);
-A3 = A(0,-90,d3,0);
+A2 = A(0,-90,d2,-90);
+A3 = A(0,-90,d3,90);
+A4 = A(0,0,d4,0);
 
 %Posição de cada junta
 T1_s = A1*p0;
 T2_s = A1*A2*p0;
 T3_s = A1*A2*A3*p0;
+T4_s = A1*A2*A3*A4*p0;
 
 %Tira o jacobiano
-Jacobiano = jacobian(T3_s, [d1 d2 d3]);
+Jacobiano = jacobian(T4_s, [d2 d3 d4]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
-d1 = 0.746846267080342;
-d2 = 1;
-d3 = 0.200000000000000;
+d1 = 1;
+d2 = 0.746846267080342;
+d3 = 1;
+d4 = 0.200000000000000;
 
 %Trajetória
-pini = eval(T3_s);      %Posição inicial da ponta do robo
+pini = eval(T4_s);      %Posição inicial da ponta do robo
 trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
                linspace(pini(2,1),pfinal(2,1),inv(ds));
                linspace(pini(3,1),pfinal(3,1),inv(ds));
@@ -62,13 +65,13 @@ trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
 
 %Parâmetros
 maxIter = 100;
-d(:,1) = [d1; d2; d3];
+d(:,1) = [d2; d3; d4];
 eps = 10^-4;
 thetaFinal = zeros(3,inv(ds));
 thetaFinal(:,1) = d(:,1);
 
 %Posição inicial
-pos_inicial = eval(A1*A2*A3*p0);
+pos_inicial = eval(A1*A2*A3*A4*p0);
 
 for i = 2:inv(ds)
     pf = trajetoria(:,i);
@@ -79,15 +82,16 @@ for i = 2:inv(ds)
         T1 = eval(T1_s);
         T2 = eval(T2_s);
         T3 = eval(T3_s);
+        T4 = eval(T4_s);
         J = eval(Jacobiano);
 
         %Faz a iteração do algoritmo
-        dx = pinv(J)*(pf - T3);
+        dx = pinv(J)*(pf - T4);
         d(:,k+1) = d(:,k) + dx;
-        erro_de_posicao = pf - T3;
-        d1 = d(1,k+1);
-        d2 = d(2,k+1);
-        d3 = d(3,k+1);
+        erro_de_posicao = pf - T4;
+        d2 = d(1,k+1);
+        d3 = d(2,k+1);
+        d4 = d(3,k+1);
 
         k = k+1;
         if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(dx < 10^-10) == 4)||(k > maxIter)
@@ -117,7 +121,7 @@ for i = 2:inv(ds)
 %     pause(0.05);
     
     %Atualiza a posição incial como a posição atual do robo
-    pos_inicial = T3;
+    pos_inicial = T4;
     thetaFinal(:,i) = d(:,k-1);
     
 %end for
@@ -199,16 +203,18 @@ figure(4);
 for i = 1:size(trajetoria,1)
     
     %Novas posições de cada junta
-    d1 = trajetoria(i,1);
-    d2 = trajetoria(i,2);
-    d3 = trajetoria(i,3);
+    d2 = trajetoria(i,1);
+    d3 = trajetoria(i,2);
+    d4 = trajetoria(i,3);
 
     %Calcula posições do robo
     T1 = eval(T1_s);
     T2 = eval(T2_s);
     T3 = eval(T3_s);
+    T4 = eval(T4_s);
     
     %Plota
+    figure(4)
     clf
     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
     hold on;
@@ -218,11 +224,13 @@ for i = 1:size(trajetoria,1)
     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
     plot3(T1(1),T1(2), T1(3), '*')
     plot3(T2(1),T2(2), T2(3), '*')
+    plot3(T3(1),T3(2), T3(3), '*')
     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
     pause(0.05);
 end
-return
+
 %% Modelo dinâmico do sistema
 
 %Parâmetros do sistema

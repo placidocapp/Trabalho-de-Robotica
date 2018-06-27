@@ -238,6 +238,12 @@ end
 
 %Plota o resultado
 figure(4);
+%Inicializa o ponto inicial novamente
+theta1 = -0.177613415641065;
+theta2 = 1.947575427099808;
+d3 = 1.300000000000000;
+theta4 = deg2rad(0);
+pini = eval(A1*A2*A3*A4*p0);
 for i = 1:size(trajetoria,1)
     
     %Novas posições de cada junta
