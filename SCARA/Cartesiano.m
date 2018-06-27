@@ -8,35 +8,40 @@ format short;
 %Variáveis das juntas
 syms d1 d2 d3 d4
 
+%Parâmetros do robô
+d2max = 1;
+d3max = 1;
+d4max = 0.35;
+
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
 %Numero de trajetórias
-ntraj = 3;
+ntraj = 6;
 
 %Posição desejada
-pfinal = [  0.7468  0.5     0.5 
-            1       2       2
-            1       1       0.2
-            1       1       1];     
+pfinal = [  0.7     0.3     0.3     0.3     0.7     0.7
+            0.7     0.3     0.3     0.3     0.7     0.7
+            0.4     0.4     0.17    0.4     0.4     0.17
+            1       1       1       1       1       1];     
 
-%Passo
+%Passo para cinemática inversa
 ds = 0.1;
 
 %Passo para plote da trajetória
-dss = 0.01;
+dss = 0.05;
 
 %Tempo inicial e final
-ti = [0 1 2];
-tf = [1 2 3];
+ti = [0 2 4 6 8 10];
+tf = [2 4 6 8 10 12];
 
 %Velocidades iniciais e finais
-vi = [0 0 0];
-vf = [0 0 0];
+vi = [0 0 0 0 0 0];
+vf = [0 0 0 0 0 0];
 
 %Acelerações iniciais e finais
-ai = [0 0 0];
-af = [0 0 0];
+ai = [0 0 0 0 0 0];
+af = [0 0 0 0 0 0];
 
 %% SCARA
 
@@ -57,10 +62,10 @@ Jacobiano = jacobian(T4_s, [d2 d3 d4]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
-d1 = 1;
-d2 = 0.746846267080342;
-d3 = 1;
-d4 = 0.200000000000000;
+d1 = 0.5;
+d2 = 0.7;
+d3 = 0.7;
+d4 = 0.33;
 
 %Loop de trajetórias
 thetaInterm = zeros(3,ntraj+1); %Salva os valores intermediários de cada junta
@@ -72,7 +77,7 @@ for traj = 1:ntraj
                    linspace(pini(2,1),pfinal(2,traj),inv(ds));
                    linspace(pini(3,1),pfinal(3,traj),inv(ds));
                    linspace(pini(4,1),pfinal(4,traj),inv(ds))];
-
+               
     %Parâmetros
     maxIter = 100;
     d(:,1) = [d2; d3; d4];
@@ -102,6 +107,15 @@ for traj = 1:ntraj
             d2 = d(1,k+1);
             d3 = d(2,k+1);
             d4 = d(3,k+1);
+            if d2 > d2max
+                d2 == d2max;
+            end
+            if d3 > d3max
+                d2 == d3max;
+            end
+            if d4 > d4max
+                d2 == d4max;
+            end
 
             k = k+1;
             if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(dx < 10^-10) == 4)||(k > maxIter)
@@ -226,10 +240,10 @@ end
 %Plota o resultado
 figure(4);
 %Inicializa no ponto inicial
-d1 = 1;
-d2 = 0.746846267080342;
-d3 = 1;
-d4 = 0.200000000000000;
+d1 = 0.5;
+d2 = 0.7;
+d3 = 0.7;
+d4 = 0.33;
 pini = eval(A1*A2*A3*A4*p0);
 for i = 1:size(trajetoria,1)
     
@@ -244,28 +258,28 @@ for i = 1:size(trajetoria,1)
     T3 = eval(T3_s);
     T4 = eval(T4_s);
     
-    %Plota
-    figure(4)
-    clf
-    plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
-    hold on;
-    axis([-1 3 -1 3 -1 3])
-    plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.r');
-    plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
-    plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
-    plot3(T1(1),T1(2), T1(3), '*')
-    plot3(T2(1),T2(2), T2(3), '*')
-    plot3(T3(1),T3(2), T3(3), '*')
-    plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
-    plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
-    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
-    pause(0.05);
+%     %Plota
+%     figure(4)
+%     clf
+%     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
+%     hold on;
+%     axis([-1 3 -1 3 -1 3])
+%     plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.g');
+%     plot3(pfinal(1,3),pfinal(2,3),pfinal(3,3),'.r');
+%     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
+%     plot3(T1(1),T1(2), T1(3), '*')
+%     plot3(T2(1),T2(2), T2(3), '*')
+%     plot3(T3(1),T3(2), T3(3), '*')
+%     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
+%     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+%     plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
+%     pause(0.05);
 end
 
 %% Modelo dinâmico do sistema
 
 %Parâmetros do sistema
-m = 15;     % [kg] para cada junta
+m1 = 16; m2 = 16; m3 = 16; m4 = 8;     % [kg] para cada junta
 g = 9.81;   % [m/s^2]
 
 %Jacobianos de Velocidade 
@@ -281,9 +295,9 @@ Jv3 = [0 0 1;
 % Jw = 0 para todos os elos !
    
 % Cálculo dos valores de D
-D1 = m*Jv1'*Jv1;
-D2 = m*Jv2'*Jv2;  
-D3 = m*Jv3'*Jv3;   
+D1 = m2*Jv1'*Jv1;
+D2 = m3*Jv2'*Jv2;  
+D3 = m4*Jv3'*Jv3;   
    
 D = D1 + D2 + D3;
 
@@ -291,13 +305,13 @@ D = D1 + D2 + D3;
 %       C = 0
 
 %Cálculo da matriz G
-G = [g*(m+m+m); 0; 0];   
+G = [g*(m2+m3+m4); 0; 0];   
 
 %%  Esforços nas juntas da trajetória desejada
 
 %Vetor de Esforços
 F = zeros(3,ntraj*div);
-for k = 1:div
+for k = 1:ntraj*div
     F(:,k) = D*acel(k,:)'+ G;
 end
 
@@ -321,14 +335,54 @@ for i = 1:3
     xlabel('t [s]')
 end
 
+%%  Energia Cinética e Potencial
 
+Ep = zeros(1,ntraj*div);
+Ec = zeros(1,ntraj*div);
+for i = 1:ntraj*div
+    %Valores da trajetoria
+    d2_dot = vel(i,1);
+    d3_dot = vel(i,2);
+    d4_dot = vel(i,3);
+    d2 = trajetoria(i,1);
+    d3 = trajetoria(i,2);
+    d4 = trajetoria(i,3);
+    
+    %Energia potencial
+    Ep(i) = sum([m1*g*d1 m2*g*d1 m3*g*(d1-d4)]);
+    
+    %Energia Cinética
+    Ec(i) = 0.5*( (m2+m3+m4)*d2_dot^2 + (m2+m3)*d3_dot^2 + m3*d4_dot^2 );
+end
 
+%plota energias
+figure(6); 
+plot(t,Ep); 
+title('Energia Potencial')
+figure(7);
+title('Energia Cinética')
+plot(t,abs(Ec))
 
+%%  Cálculo das incertezas
 
+%Incertezas do manipulador
+u2 = 0.015;
+u3 = 0.015;
+u4 = 0.010;
 
+%Sensibilidade
+syms d2 d3 d4;
+pf = A1*A2*A3*A4*p0;
+jac = jacobian(A1*A2*A3*A4*p0, [d2 d3 d4]);
 
+ux = eval(( (jac(1,1)*u2)^2 + (jac(1,2)*u3)^2 + (jac(1,3)*u4)^2 )^2);
+uy = eval(( (jac(2,1)*u2)^2 + (jac(2,2)*u3)^2 + (jac(2,3)*u4)^2 )^2);
+uz = eval(( (jac(3,1)*u2)^2 + (jac(3,2)*u3)^2 + (jac(3,3)*u4)^2 )^2);
 
+%%  Salva trajetórias para usar no Simulink
 
+save('Cartesiano_data','trajetoria','vel', 'acel')
+    
 
 
 

@@ -257,22 +257,22 @@ for i = 1:size(trajetoria,1)
     T3 = eval(T3_s);
     T4 = eval(T4_s);
     
-    %Plota
-    figure(4)
-    clf
-    plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
-    hold on;
-    axis([-1 3 -1 3 -1 3])
-    plot3(pfinal(1,traj),pfinal(2,traj),pfinal(3,end),'.r');
-    plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
-    plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
-    plot3(T1(1),T1(2), T1(3), '*')
-    plot3(T2(1),T2(2), T2(3), '*')
-    plot3(T3(1),T3(2), T3(3), '*')
-    plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
-    plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
-    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
-    pause(0.01);
+%     %Plota
+%     figure(4)
+%     clf
+%     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
+%     hold on;
+%     axis([-1 3 -1 3 -1 3])
+%     plot3(pfinal(1,traj),pfinal(2,traj),pfinal(3,end),'.g');
+%     plot3(pfinal(1,3),pfinal(2,3),pfinal(3,3),'.r');
+%     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
+%     plot3(T1(1),T1(2), T1(3), '*')
+%     plot3(T2(1),T2(2), T2(3), '*')
+%     plot3(T3(1),T3(2), T3(3), '*')
+%     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
+%     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+%     plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
+%     pause(0.01);
 end
 
 %% Modelo dinâmico do sistema
@@ -364,6 +364,74 @@ for i = 1:4
     end
     xlabel('t [s]')
 end
+
+%%  Energia Cinética e Potencial
+
+Ep = zeros(1,ntraj*div);
+Ec = zeros(1,ntraj*div);
+for i = 1:ntraj*div
+    %Valores da trajetoria
+    theta1_dot = vel(i,1);
+    theta2_dot = vel(i,2);
+    d3_dot = vel(i,3);
+    theta4_dot = vel(i,4);
+    theta1 = trajetoria(i,1);
+    theta2 = trajetoria(i,2);
+    d3 = trajetoria(i,3);
+    tehta4 = trajetoria(i,4);
+    
+    %Energia potencial
+    Ep(i) = sum([m1*g*d1 m2*g*d1 m3*g*(d1-d3) m4*g*(d1-d3-d4)]);
+    
+    %Energia Cinética
+    Ec(i) = eval(d11)*theta1_dot + 2*eval(d12)*theta1_dot*theta2_dot ...
+    +d14*(2*theta1_dot*theta4_dot + 2*theta2_dot*theta4_dot - theta4_dot) ...
+    +d22*theta2_dot + d33*d3_dot^2;
+    
+    
+end
+
+%plota energias
+figure(6); 
+plot(t,Ep); 
+title('Energia Potencial')
+figure(7);
+title('Energia Cinética')
+plot(t,abs(Ec))
+
+%%  Cálculo das incertezas
+
+%Incertezas do manipulador
+u2 = 0.015;
+u3 = 0.015;
+u4 = 0.010;
+
+%Sensibilidade
+syms d2 d3 d4;
+pf = A1*A2*A3*A4*p0;
+jac = jacobian(A1*A2*A3*A4*p0, [d2 d3 d4]);
+
+ux = zeros(ntraj*div,1);
+uy = zeros(ntraj*div,1);
+uz = zeros(ntraj*div,1);
+for i = 1:ntraj*div
+    theta1 = trajetoria(i,1);
+    theta2 = trajetoria(i,2);
+    ux(i) = eval(( (jac(1,1)*u2)^2 + (jac(1,2)*u3)^2 + (jac(1,3)*u4)^2 )^2);
+    uy(i) = eval(( (jac(2,1)*u2)^2 + (jac(2,2)*u3)^2 + (jac(2,3)*u4)^2 )^2);
+    uz(i) = eval(( (jac(3,1)*u2)^2 + (jac(3,2)*u3)^2 + (jac(3,3)*u4)^2 )^2);
+end
+
+%Plota erros
+subplot(2,2,1)
+plot(t,ux)
+subplot(2,2,2)
+plot(t,ux)
+subplot(2,2,3)
+plot(t,ux)
+
+
+
 
 
 
