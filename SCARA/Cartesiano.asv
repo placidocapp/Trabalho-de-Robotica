@@ -11,8 +11,14 @@ syms d1 d2 d3 d4
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
+%Numero de trajetórias
+ntraj = 3;
+
 %Posição desejada
-pfinal = [0.5;2;0.2;1];
+pfinal = [  0.7468  0.5     0.5 
+            1       2       2
+            1       1       0.2
+            1       1       1];     
 
 %Passo
 ds = 0.1;
@@ -21,24 +27,24 @@ ds = 0.1;
 dss = 0.01;
 
 %Tempo inicial e final
-ti = 0;
-tf = 1;
+ti = [0 2 4];
+tf = [2 4 6];
 
 %Velocidades iniciais e finais
-vi = 0;
-vf = 0;
+vi = [0 0 0];
+vf = [0 0 0];
 
 %Acelerações iniciais e finais
-ai = 0;
-af = 0;
+ai = [0 0 0];
+af = [0 0 0];
 
 %% SCARA
 
 % Calcula a matriz de rotação
-A1 = A(0,-90,d1,0)
-A2 = A(0,-90,d2,-90)
-A3 = A(0,-90,d3,90)
-A4 = A(0,0,d4,0)
+A1 = A(0,-90,d1,0);
+A2 = A(0,-90,d2,-90);
+A3 = A(0,-90,d3,90);
+A4 = A(0,0,d4,0);
 
 %Posição de cada junta
 T1_s = A1*p0;
@@ -56,74 +62,85 @@ d2 = 0.746846267080342;
 d3 = 1;
 d4 = 0.200000000000000;
 
-%Trajetória
-pini = eval(T4_s);      %Posição inicial da ponta do robo
-trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
-               linspace(pini(2,1),pfinal(2,1),inv(ds));
-               linspace(pini(3,1),pfinal(3,1),inv(ds));
-               linspace(pini(4,1),pfinal(4,1),inv(ds))];
+%Loop de trajetórias
+thetaInterm = zeros(3,ntraj+1); %Salva os valores intermediários de cada junta
+thetaInterm(:,1) = [d2; d3; d4];
+for traj = 1:ntraj
+    %Trajetória
+    pini = eval(T4_s);      %Posição inicial da ponta do robo
+    trajetoria = [ linspace(pini(1,1),pfinal(1,1),inv(ds));
+                   linspace(pini(2,1),pfinal(2,1),inv(ds));
+                   linspace(pini(3,1),pfinal(3,1),inv(ds));
+                   linspace(pini(4,1),pfinal(4,1),inv(ds))];
 
-%Parâmetros
-maxIter = 100;
-d(:,1) = [d2; d3; d4];
-eps = 10^-4;
-thetaFinal = zeros(3,inv(ds));
-thetaFinal(:,1) = d(:,1);
+    %Parâmetros
+    maxIter = 100;
+    d(:,1) = [d2; d3; d4];
+    eps = 10^-4;
+    thetaFinal = zeros(3,inv(ds));
+    thetaFinal(:,1) = d(:,1);
 
-%Posição inicial
-pos_inicial = eval(A1*A2*A3*A4*p0);
+    %Posição inicial
+    pos_inicial = eval(A1*A2*A3*A4*p0);
 
-for i = 2:inv(ds)
-    pf = trajetoria(:,i);
-    k = 1;
-    %Loop para cinemática reversa
-    while (1)
-        %Descobre as posições das juntas
-        T1 = eval(T1_s);
-        T2 = eval(T2_s);
-        T3 = eval(T3_s);
-        T4 = eval(T4_s);
-        J = eval(Jacobiano);
+    for i = 2:inv(ds)
+        pf = trajetoria(:,i);
+        k = 1;
+        %Loop para cinemática reversa
+        while (1)
+            %Descobre as posições das juntas
+            T1 = eval(T1_s);
+            T2 = eval(T2_s);
+            T3 = eval(T3_s);
+            T4 = eval(T4_s);
+            J = eval(Jacobiano);
 
-        %Faz a iteração do algoritmo
-        dx = pinv(J)*(pf - T4);
-        d(:,k+1) = d(:,k) + dx;
-        erro_de_posicao = pf - T4;
-        d2 = d(1,k+1);
-        d3 = d(2,k+1);
-        d4 = d(3,k+1);
+            %Faz a iteração do algoritmo
+            dx = pinv(J)*(pf - T4);
+            d(:,k+1) = d(:,k) + dx;
+            erro_de_posicao = pf - T4;
+            d2 = d(1,k+1);
+            d3 = d(2,k+1);
+            d4 = d(3,k+1);
 
-        k = k+1;
-        if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(dx < 10^-10) == 4)||(k > maxIter)
-            erro_de_posicao;
-            k;
-            %atualiza novo theta
-            d(:,1) = d(:,k-1);
-            d(:,1);
-            break;
-        end 
-        
-    %end while
+            k = k+1;
+            if (sum(abs(erro_de_posicao) < eps) == 4)||(sum(dx < 10^-10) == 4)||(k > maxIter)
+                erro_de_posicao;
+                k;
+                %atualiza novo theta
+                d(:,1) = d(:,k-1);
+                d(:,1);
+                break;
+            end 
+
+        %end while
+        end
+
+    %     %Plota
+    %     clf
+    %     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
+    %     hold on;
+    %     axis([-1 3 -1 3 -1 3])
+    %     plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.r');
+    %     plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
+    %     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
+    %     plot3(T1(1),T1(2), T1(3), 'b*')
+    %     plot3(T2(1),T2(2), T2(3), 'g*')
+    %     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
+    %     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+    %     pause(0.05);
+
+        %Atualiza a posição incial como a posição atual do robo
+        pos_inicial = T4;
+        thetaFinal(:,i) = d(:,k-1);
+
+    %end for
     end
-    
-%     %Plota
-%     clf
-%     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
-%     hold on;
-%     axis([-1 3 -1 3 -1 3])
-%     plot3(pfinal(1,end),pfinal(2,end),pfinal(3,end),'.r');
-%     plot3(pf(1,end),pf(2,end),pf(3,end),'*r');
-%     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
-%     plot3(T1(1),T1(2), T1(3), 'b*')
-%     plot3(T2(1),T2(2), T2(3), 'g*')
-%     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
-%     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
-%     pause(0.05);
-    
-    %Atualiza a posição incial como a posição atual do robo
-    pos_inicial = T4;
-    thetaFinal(:,i) = d(:,k-1);
-    
+    thetaInterm(:,traj+1) = thetaFinal(:,end);
+    d2 =  thetaFinal(1,end);
+    theta2 =  thetaFinal(2,end);
+    d3 = thetaFinal(3,end);
+    theta4 = thetaFinal(4,end);
 %end for
 end
 
@@ -203,16 +220,18 @@ figure(4);
 for i = 1:size(trajetoria,1)
     
     %Novas posições de cada junta
-    d1 = trajetoria(i,1);
-    d2 = trajetoria(i,2);
-    d3 = trajetoria(i,3);
+    d2 = trajetoria(i,1);
+    d3 = trajetoria(i,2);
+    d4 = trajetoria(i,3);
 
     %Calcula posições do robo
     T1 = eval(T1_s);
     T2 = eval(T2_s);
     T3 = eval(T3_s);
+    T4 = eval(T4_s);
     
     %Plota
+    figure(4)
     clf
     plot3(pini(1,1),pini(2,1),pini(3,1),'.b');
     hold on;
@@ -222,11 +241,13 @@ for i = 1:size(trajetoria,1)
     plot3([p0(1) T1(1)],[p0(2) T1(2)],[p0(3) T1(3)], 'k');
     plot3(T1(1),T1(2), T1(3), '*')
     plot3(T2(1),T2(2), T2(3), '*')
+    plot3(T3(1),T3(2), T3(3), '*')
     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
+    plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
     pause(0.05);
 end
-return
+
 %% Modelo dinâmico do sistema
 
 %Parâmetros do sistema

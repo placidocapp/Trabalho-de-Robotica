@@ -9,40 +9,40 @@ format short;
 syms theta1 theta2 d3 theta4
 
 %Parâmetros do robô
-a1 = 1;
-a2 = 1.2;
-d1 = 1.5;
-d4 = 0;
+a1 = 0.5;
+a2 = 0.5;
+d1 = 0.45;
+d4 = 0.35;
 
 %Referencial 0
 p0 = [0;0;0;1]; %Incio da junta, chutes iniciais abaixo
 
 %Numero de trajetórias
-ntraj = 3;
+ntraj = 6;
 
 %Posição desejada
-pfinal = [  0.7468  0.5     0.5 
-            1       2       2
-            1       1       0.2
-            1       1       1];     
+pfinal = [  0.7     0.3     0.3     0.3     0.7     0.7
+            0.7     0.3     0.3     0.3     0.7     0.7
+            0.4     0.4     0.17    0.4     0.4     0.17
+            1       1       1       1       1       1];     
 
 %Passo para cinemática inversa
 ds = 0.1;
 
 %Passo para plote da trajetória
-dss = 0.01;
+dss = 0.05;
 
 %Tempo inicial e final
-ti = [0 2 4];
-tf = [2 4 6];
+ti = [0 2 4 6 8 10];
+tf = [2 4 6 8 10 12];
 
 %Velocidades iniciais e finais
-vi = [0 0 0];
-vf = [0 0 0];
+vi = [0 0 0 0 0 0];
+vf = [0 0 0 0 0 0];
 
 %Acelerações iniciais e finais
-ai = [0 0 0];
-af = [0 0 0];
+ai = [0 0 0 0 0 0];
+af = [0 0 0 0 0 0];
 
 %% SCARA
 
@@ -63,10 +63,10 @@ Jacobiano = jacobian(T4_s, [theta1 theta2 d3 theta4]);
 Jacobiano = simplify(Jacobiano);
 
 %Chute inicial
-theta1 = -0.177613415641065;
-theta2 = 1.947575427099808;
-d3 = 1.300000000000000;
-theta4 = deg2rad(0);
+theta1 = 0.643501004072952;
+theta2 = 0.283794318648993;
+d3 = -0.070000000000000;
+theta4 = 0;
 
 %Loop de trajetórias
 thetaInterm = zeros(4,ntraj+1); %Salva os valores intermediários de cada junta
@@ -78,7 +78,7 @@ for traj = 1:ntraj
                    linspace(pini(2,1),pfinal(2,traj),inv(ds));
                    linspace(pini(3,1),pfinal(3,traj),inv(ds));
                    linspace(pini(4,1),pfinal(4,traj),inv(ds))];
-
+               
     %Parâmetros
     maxIter = 100;
     theta = zeros(4,1);
@@ -117,7 +117,7 @@ for traj = 1:ntraj
                 erro_de_posicao;
                 k;
                 %atualiza novo theta
-                theta(:,1) = theta(:,k-1);
+                theta(:,1) = theta(:,k);
                 theta(:,1);
                 break;
             end 
@@ -143,11 +143,10 @@ for traj = 1:ntraj
 
         %Atualiza a posição incial como a posição atual do robo
         pos_inicial = T4;
-        thetaFinal(:,i) = theta(:,k-1);
+        thetaFinal(:,i) = theta(:,k);
 
     %end for
     end
-    
     thetaInterm(:,traj+1) = thetaFinal(:,end);
     theta1 =  thetaFinal(1,end);
     theta2 =  thetaFinal(2,end);
@@ -179,7 +178,7 @@ for traj = 1:ntraj
         for k = (1+(traj-1)*div):traj*div
             trajetoria(k,i) = aux'*[1; t(k); t(k)^2; t(k)^3; t(k)^4; t(k)^5];
             vel(k,i) = aux'*[0; 1; 2*t(k); 3*t(k)^2; 4*t(k)^3; 5*t(k)^4];
-            acel(k,i) = aux'*[0; 0; 2; t(k)^3; t(k)^4; t(k)^5];
+            acel(k,i) = aux'*[0; 0; 2; 6*t(k); 12*t(k)^2; 20*t(k)^3];
         end
     end
     
@@ -273,7 +272,7 @@ for i = 1:size(trajetoria,1)
     plot3([T1(1) T2(1)],[T1(2) T2(2)],[T1(3) T2(3)], 'k');
     plot3([T2(1) T3(1)],[T2(2) T3(2)],[T2(3) T3(3)], 'k');
     plot3([T3(1) T4(1)],[T3(2) T4(2)],[T3(3) T4(3)], 'k');
-    pause(0.05);
+    pause(0.01);
 end
 
 %% Modelo dinâmico do sistema
@@ -281,8 +280,8 @@ end
 %Parâmetros do sistema
 m = 3;     % [kg] para cada junta
 g = 9.81;   % [m/s^2]
-Iz1 = 5; Iz2 = 5; Iz3 = 5; Iz4 = 5;
-m1 = 3; m2 = 3; m3 = 3; m4 = 3;
+Iz1 = 8.25; Iz2 = 2; Iz3 = 0.05; Iz4 = 0;
+m1 = 14.7222; m2 = 14.7222; m3 = 13.2500; m4 = 5.3055;
 
 syms theta1 theta2 d3 theta4 theta1_dot theta2_dot
 
@@ -337,7 +336,7 @@ G = [0; 0; -g*(m3+m4); 0];
 
 %Vetor de Esforços
 F = zeros(4,ntraj*div);
-for k = 1:div
+for k = 1:ntraj*div
     theta1 = trajetoria(k,1);
     theta2 = trajetoria(k,2);
     theta1_dot = vel(k,1);
